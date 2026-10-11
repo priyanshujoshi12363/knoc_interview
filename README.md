@@ -1,36 +1,174 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+# Knoc Interview — Backend
 
-First, run the development server:
+FastAPI backend for Knoc Interview, an AI-powered interview preparation
+Android application. It uses MongoDB Atlas for persistence and is designed
+to support practice interviews, live voice interviews, adaptive follow-up
+questions, hints, and performance summaries.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Tech Stack
+
+- Python
+- FastAPI
+- MongoDB Atlas
+- PyMongo AsyncMongoClient
+- Pydantic
+- python-dotenv
+- Uvicorn
+
+## Project Structure
+
+```text
+BACKEND/
+├── main.py
+├── .env
+├── .gitignore
+├── README.md
+├── requirements.txt
+├── db/
+│   ├── __init__.py
+│   └── index.py
+└── models/
+    ├── __init__.py
+    ├── common.py
+    ├── auth.py
+    ├── user.py
+    ├── interview.py
+    └── evaluation.py
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Prerequisites
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Python 3.10 or newer
+- MongoDB Atlas account
+- MongoDB Atlas database user and connection string
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Installation
 
-## Learn More
+### 1. Clone the repository
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+git clone <YOUR_REPOSITORY_URL>
+cd BACKEND
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+If you already have the project locally, open a terminal in the
+`BACKEND` directory instead.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. Create a virtual environment
 
-## Deploy on Vercel
+Windows PowerShell:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```powershell
+py -m venv venv
+.\venv\Scripts\Activate.ps1
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Linux/macOS:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install fastapi "uvicorn[standard]" pymongo python-dotenv "pydantic[email]"
+```
+
+Save the installed dependencies:
+
+```bash
+python -m pip freeze > requirements.txt
+```
+
+## Environment Configuration
+
+Create a `.env` file in the project root:
+
+```env
+MONGODB_URL="mongodb+srv://<username>:<password>@cluster0.vugudi3.mongodb.net/knoc_interview?appName=Cluster0"
+```
+
+Replace `<username>` and `<password>` with your MongoDB Atlas credentials.
+
+Ensure your Atlas network access rules allow your development machine
+to connect. Never commit `.env` or publish database credentials.
+
+## Run the Server
+
+From the project root:
+
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The server will attempt to connect to MongoDB during startup.
+
+## API Endpoints
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/` | API welcome message |
+| GET | `/api/v1/health` | API health check |
+| GET | `/api/v1/health/database` | MongoDB connection check |
+| GET | `/docs` | Interactive Swagger API documentation |
+
+Open the documentation in your browser:
+
+http://127.0.0.1:8000/docs
+
+## Android Development
+
+When connecting the Android app to the backend:
+
+- Android emulator: `http://10.0.2.2:8000`
+- Physical Android device on the same Wi-Fi: `http://<YOUR_PC_LAN_IP>:8000`
+- Deployed backend: use its public HTTPS URL.
+
+The local URLs are for development only. Production deployments should
+use HTTPS and secure server-side configuration.
+
+## MongoDB Collections
+
+The planned collections are:
+
+- `users` — user profiles and authentication records
+- `interviews` — interview configuration and lifecycle
+- `interview_turns` — questions, answers, transcripts, and hints
+- `evaluations` — scores, feedback, and interview summaries
+
+MongoDB collections are generally created when documents are first inserted.
+Defining a collection variable alone does not create it.
+
+## Planned Features
+
+- User registration and login
+- Profile and dashboard
+- Practice mode with topic selection
+- Live voice interview mode
+- Context-aware follow-up questions
+- Optional interview hints
+- Interview history and summaries
+- Performance tracking and practice streaks
+
+## Security
+
+- Keep database credentials in environment variables.
+- Hash passwords before storing them.
+- Protect user-owned resources with authentication and ownership checks.
+- Keep AI provider API keys on the backend.
+- Validate incoming requests and limit request sizes.
+- Use HTTPS in production.
+
+## Development Status
+
+The backend foundation and initial Pydantic schemas are being developed.
+Authentication, interview lifecycle APIs, AI voice integration, and
+evaluation services will be implemented incrementally.
+
+## License
+
+To be decided.
