@@ -1,48 +1,42 @@
+
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from db.index import connect_db, close_db, db
-
-
+from api.routes.auth import router as auth_router
+from api.routes.user import router as users_router
+from db.index import connect_db, close_db
+from api.routes.interviews import router as interviews_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
-    yield
-    await close_db()
+    try:
+        yield
+    finally:
+        await close_db()
 
 
 app = FastAPI(
     title="Knoc Interview API",
-    description="AI-powered interview backend",
+    description="AI-powered interview preparation backend",
     version="1.0.0",
     lifespan=lifespan,
 )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Knoc Interview API is running!",
-        "status": "online",
-    }
-
-
-@app.get("/api/v1/health")
+@app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "service": "Knoc Interview API"}
 
 
-@app.get("/api/v1/health/database")
-async def database_health():
-    try:
-        await db.command("ping")
-        return {
-            "status": "connected",
-            "database": "knoc_interview",
-        }
-    except Exception as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="MongoDB connection failed",
-        ) from exc
+app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(interviews_router)
