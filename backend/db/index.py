@@ -1,4 +1,3 @@
-
 from pymongo import AsyncMongoClient
 
 from core.config import MONGODB_URL
@@ -12,8 +11,7 @@ refresh_sessions_collection = db["refresh_sessions"]
 interviews_collection = db["interviews"]
 interview_turns_collection = db["interview_turns"]
 evaluations_collection = db["evaluations"]
-interviews_collection = db["interviews"]
-interview_turns_collection = db["interview_turns"]
+
 
 async def connect_db():
     await client.admin.command("ping")
@@ -41,26 +39,21 @@ async def connect_db():
         name="refresh_sessions_by_user",
     )
 
+    # No custom names — let Mongo auto-name these (matches existing indexes)
     await interviews_collection.create_index(
-        [("user_id", 1), ("created_at", -1)]
+        [("user_id", 1), ("created_at", -1)],
     )
 
     await interview_turns_collection.create_index(
-        [("interview_id", 1), ("sequence_number", 1)]
+        [("interview_id", 1), ("sequence_number", 1)],
+        unique=True,
     )
 
     await evaluations_collection.create_index(
         [("user_id", 1), ("interview_id", 1)],
         unique=True,
     )
-    await interviews_collection.create_index(
-    [("user_id", 1), ("created_at", -1)]
-)
 
-    await interview_turns_collection.create_index(
-    [("interview_id", 1), ("turn_number", 1)],
-    unique=True,
-)
     print("MongoDB connected; indexes verified")
 
 

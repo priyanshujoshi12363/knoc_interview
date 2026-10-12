@@ -8,6 +8,7 @@ from api.routes.auth import router as auth_router
 from api.routes.user import router as users_router
 from db.index import connect_db, close_db
 from api.routes.interviews import router as interviews_router
+from api.routes.practice import router as practice_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
@@ -40,3 +41,4 @@ async def health():
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(interviews_router)
+app.include_router(practice_router)
