@@ -1,0 +1,1 @@
+# Keep default; add app-specific rules later if needed

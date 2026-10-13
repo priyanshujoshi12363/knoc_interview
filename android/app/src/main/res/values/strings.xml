@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Knoc Interview</string>
+    <string name="tagline">Ace your next interview</string>
+    <string name="interview_mode">Interview Mode</string>
+    <string name="interview_mode_desc">Silent co-pilot with real-time hints</string>
+    <string name="practice_mode">Practice Mode</string>
+    <string name="practice_mode_desc">AI mock interview with voice feedback</string>
+</resources>

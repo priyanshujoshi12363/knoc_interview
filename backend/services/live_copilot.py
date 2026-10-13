@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import os
@@ -25,12 +26,28 @@ OLLAMA_CHAT_URL = os.getenv(
 )
 
 AI_TIMEOUT_SECONDS = float(os.getenv("AI_TIMEOUT_SECONDS", "45"))
+STT_TIMEOUT_SECONDS = float(os.getenv("STT_TIMEOUT_SECONDS", "30"))
 
 NIGIX_TTS_URL = os.getenv(
     "NIGIX_TTS_URL",
     "https://priyanshu00w-nigixmosha.hf.space",
 )
 NIGIX_TTS_TOKEN = os.getenv("NIGIX_TTS_TOKEN", "")
+
+DEFAULT_DOMAIN_PROMPT = (
+    "Technical job interview conversation. Common terms: "
+    "algorithm, complexity, API, database, Redis, Kafka, system design, "
+    "microservices, REST, GraphQL, backend, frontend, latency, throughput, "
+    "cache, deployment, Kubernetes, Docker, CI/CD, OAuth, JWT, SQL, NoSQL, "
+    "indexing, sharding, replication, concurrency, threading, memory."
+)
+
+HALLUCINATION_PHRASES = {
+    "thank you", "thanks", "okay", "ok", "bye", "goodbye",
+    "yeah", "yes", "no", "hmm", "uh", "um",
+    "please subscribe", "like and subscribe",
+    "amara.org", "subtitles by", "you",
+}
 
 
 class ProviderConfigurationError(RuntimeError):
@@ -47,7 +64,63 @@ def pcm16_mono_to_wav(pcm: bytes, sample_rate: int = 16000) -> bytes:
     return buffer.getvalue()
 
 
-async def transcribe_pcm(pcm: bytes, language: str = "en") -> str:
+def is_valid_transcript(text: str, min_words: int = 2) -> bool:
+    if not text or not text.strip():
+        return False
+
+    cleaned = text.strip().lower()
+    words = cleaned.split()
+
+    if len(words) < min_words:
+        return False
+
+    if cleaned.rstrip(".!?,;:") in HALLUCINATION_PHRASES:
+        return False
+
+    if not re.search(r"[a-zA-Z]", text):
+        return False
+
+    return True
+
+
+async def _cloudflare_post_with_retry(
+    url: str,
+    headers: dict,
+    payload: dict,
+    max_attempts: int = 2,
+) -> dict:
+    last_exc: Exception | None = None
+
+    for attempt in range(max_attempts):
+        try:
+            async with httpx.AsyncClient(timeout=STT_TIMEOUT_SECONDS) as client:
+                response = await client.post(url, headers=headers, json=payload)
+
+                if response.status_code >= 500:
+                    raise httpx.HTTPStatusError(
+                        f"Server error {response.status_code}",
+                        request=response.request,
+                        response=response,
+                    )
+
+                response.raise_for_status()
+                return response.json()
+
+        except (httpx.HTTPStatusError, httpx.TimeoutException) as exc:
+            last_exc = exc
+            if attempt < max_attempts - 1:
+                await asyncio.sleep(0.5 * (attempt + 1))
+
+    if last_exc:
+        raise last_exc
+    raise RuntimeError("Cloudflare request failed without exception")
+
+
+async def transcribe_pcm(
+    pcm: bytes,
+    language: str = "en",
+    domain_prompt: str | None = None,
+) -> str:
     if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
         raise ProviderConfigurationError(
             "Configure Cloudflare credentials in .env."
@@ -74,14 +147,12 @@ async def transcribe_pcm(pcm: bytes, language: str = "en") -> str:
         "audio": audio_b64,
         "task": "transcribe",
         "language": language,
-        "vad_filter": True,
+        "vad_filter": False,
+        "condition_on_previous_text": False,
+        "initial_prompt": domain_prompt or DEFAULT_DOMAIN_PROMPT,
     }
 
-    async with httpx.AsyncClient(timeout=AI_TIMEOUT_SECONDS) as client:
-        response = await client.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        body = response.json()
-
+    body = await _cloudflare_post_with_retry(url, headers, payload)
     result = body.get("result") or {}
     text = result.get("text", "")
 
@@ -141,18 +212,29 @@ async def detect_question_and_draft_answer(
 
     system_prompt = """
 You are a silent interview co-pilot listening to a live job interview.
-The transcript may contain a question, an answer, or background speech.
+You receive cleaned transcripts of short audio chunks from the room.
+The transcript may contain a question, an answer, background speech,
+or filler noise.
 
-Use the recent context to determine whether the latest transcript contains
-a question or prompt that the candidate should respond to.
+STRICT RULES for should_respond:
+- Return should_respond=TRUE ONLY if the latest transcript contains an
+  explicit question or a clear interview prompt (e.g., "Tell me about...",
+  "Explain...", "How would you...", "What is...", "Can you...",
+  "Describe...", "Walk me through...").
+- Return should_respond=FALSE for:
+  * Statements, opinions, acknowledgments ("I see", "Okay", "Sure", "Right")
+  * Filler words ("Um", "Uh", "Yeah", "Hmm")
+  * The candidate's own answers (only respond to INTERVIEWER questions)
+  * Incomplete sentences with no clear ask
+  * Greetings ("Hello", "Hi there", "How are you")
+  * Repeated or already-answered questions
+- If unsure, return FALSE. False negatives are acceptable; false positives
+  ruin the user's concentration during a real interview.
 
-Return should_respond=false for ordinary statements, incomplete speech,
-background conversation, or when no clear question is present.
+When should_respond=TRUE, provide a concise, accurate, natural answer
+the candidate can glance at and paraphrase. Keep it under 4 sentences.
 
-If a clear interview question is present, provide a concise, accurate,
-natural answer the candidate can glance at and paraphrase.
-
-Return ONLY valid JSON with:
+Return ONLY valid JSON with this exact structure:
 {
   "should_respond": true or false,
   "question": "detected question or empty string",
@@ -219,12 +301,13 @@ Return ONLY valid JSON with:
         }
 
     answer = re.sub(r"\s+", " ", answer).strip()
+    question = question.strip()
 
     return {
         "should_respond": (
             result.get("should_respond") is True and bool(answer)
         ),
-        "question": question.strip(),
+        "question": question,
         "answer": answer,
     }
 
@@ -239,9 +322,23 @@ async def analyze_interview_chunk(
     topics: list[str] | None = None,
     recent_context: list[dict[str, str]] | None = None,
 ) -> dict:
-    transcript = await transcribe_pcm(pcm, language=language)
+    prompt_parts = ["Technical job interview."]
+    if target_role:
+        prompt_parts.append(f"Role: {target_role}.")
+    if course:
+        prompt_parts.append(f"Topic: {course}.")
+    if topics:
+        prompt_parts.append(f"Keywords: {', '.join(topics)}.")
 
-    if not transcript.strip():
+    domain_prompt = " ".join(prompt_parts)
+
+    try:
+        transcript = await transcribe_pcm(
+            pcm,
+            language=language,
+            domain_prompt=domain_prompt,
+        )
+    except Exception:
         return {
             "transcript": "",
             "should_respond": False,
@@ -249,14 +346,30 @@ async def analyze_interview_chunk(
             "answer": "",
         }
 
-    result = await detect_question_and_draft_answer(
-        transcript=transcript,
-        topics=topics or [course],
-        course=course,
-        target_role=target_role,
-        difficulty=difficulty,
-        recent_context=recent_context or [],
-    )
+    if not is_valid_transcript(transcript):
+        return {
+            "transcript": transcript,
+            "should_respond": False,
+            "question": "",
+            "answer": "",
+        }
+
+    try:
+        result = await detect_question_and_draft_answer(
+            transcript=transcript,
+            topics=topics or [course],
+            course=course,
+            target_role=target_role,
+            difficulty=difficulty,
+            recent_context=recent_context or [],
+        )
+    except Exception:
+        return {
+            "transcript": transcript,
+            "should_respond": False,
+            "question": "",
+            "answer": "",
+        }
 
     return {
         "transcript": transcript,

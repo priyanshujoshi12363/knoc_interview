@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="28dp"
+        android:gravity="center_vertical"
+        android:minHeight="600dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Welcome back"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="36dp"
+            android:text="Sign in to continue practicing"
+            android:textSize="15sp"
+            android:textColor="?android:attr/textColorSecondary" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Email"
+            app:boxBackgroundMode="outline"
+            app:boxCornerRadiusTopStart="14dp"
+            app:boxCornerRadiusTopEnd="14dp"
+            app:boxCornerRadiusBottomStart="14dp"
+            app:boxCornerRadiusBottomEnd="14dp"
+            app:startIconDrawable="@android:drawable/ic_dialog_email"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textEmailAddress"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="Password"
+            app:boxBackgroundMode="outline"
+            app:boxCornerRadiusTopStart="14dp"
+            app:boxCornerRadiusTopEnd="14dp"
+            app:boxCornerRadiusBottomStart="14dp"
+            app:boxCornerRadiusBottomEnd="14dp"
+            app:startIconDrawable="@android:drawable/ic_lock_lock"
+            app:passwordToggleEnabled="true"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/tvLoginError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="gone"
+            android:textColor="#E74C3C"
+            android:textSize="13sp" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="28dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSignIn"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Sign in"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:background="@drawable/button_primary"
+                app:backgroundTint="@null" />
+
+            <ProgressBar
+                android:id="@+id/progressLogin"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                android:indeterminateTint="@color/white" />
+        </FrameLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_gravity="center_horizontal"
+            android:text="Test: priyanshu@123gmail.com / 12345678"
+            android:textSize="11sp"
+            android:textColor="?android:attr/textColorSecondary" />
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Initializing..."
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:padding="8dp"
+            android:background="#EEEEEE"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/tvQuestion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/btnRecord"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Start Recording"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/tvTranscript"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="14sp"
+            android:padding="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvScore"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#2E7D32"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvFeedback"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="14sp"
+            android:padding="8dp" />
+
+    </LinearLayout>
+</ScrollView>
