@@ -10,6 +10,8 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
+class UnauthorizedException : RuntimeException("Session expired")
+
 object InterviewApi {
 
     private const val BASE_URL = "https://knoc-interview.onrender.com"
@@ -60,9 +62,13 @@ object InterviewApi {
 
         client.newCall(request).execute().use { response ->
             val text = response.body?.string() ?: ""
+
+            if (response.code == 401) throw UnauthorizedException()
+
             if (!response.isSuccessful) {
                 throw RuntimeException("Analyze failed (${response.code}): $text")
             }
+
             gson.fromJson(text, AnalyzeChunkResponse::class.java)
         }
     }

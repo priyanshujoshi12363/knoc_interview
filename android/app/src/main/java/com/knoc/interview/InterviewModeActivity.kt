@@ -6,6 +6,7 @@ import android.animation.ValueAnimator
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -24,6 +25,7 @@ import com.google.gson.Gson
 import com.knoc.interview.audio.StreamRecorder
 import com.knoc.interview.data.AnalyzeChunkResponse
 import com.knoc.interview.data.InterviewApi
+import com.knoc.interview.data.UnauthorizedException
 import com.knoc.interview.util.SessionManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -139,7 +141,7 @@ class InterviewModeActivity : AppCompatActivity() {
                     "Please sign in first",
                     Toast.LENGTH_LONG
                 ).show()
-                finish()
+                goToLogin()
                 return@launch
             }
 
@@ -198,6 +200,18 @@ class InterviewModeActivity : AppCompatActivity() {
                     recentContext.add(mapOf("role" to "candidate", "content" to result.answer))
                     while (recentContext.size > 10) recentContext.removeAt(0)
                 }
+            } catch (e: UnauthorizedException) {
+                Log.w(TAG, "Token expired — logging out")
+                runOnUiThread {
+                    Toast.makeText(
+                        this@InterviewModeActivity,
+                        "Session expired — please sign in again",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                stopListeningSilently()
+                SessionManager.clear(this@InterviewModeActivity)
+                goToLogin()
             } catch (e: Exception) {
                 Log.e(TAG, "analyze failed", e)
                 tvStatus.text = "Error — retrying..."
@@ -233,20 +247,30 @@ class InterviewModeActivity : AppCompatActivity() {
         Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show()
     }
 
-    private fun stopListeningAndFinish() {
+    private fun stopListeningSilently() {
         if (isListening) {
             try { recorder.stop() } catch (_: Exception) {}
         }
         processJob?.cancel()
+        processJob = null
         isListening = false
+    }
+
+    private fun stopListeningAndFinish() {
+        stopListeningSilently()
+        finish()
+    }
+
+    private fun goToLogin() {
+        val intent = Intent(this, LoginActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        }
+        startActivity(intent)
         finish()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (isListening) {
-            try { recorder.stop() } catch (_: Exception) {}
-        }
-        processJob?.cancel()
+        stopListeningSilently()
     }
 }
